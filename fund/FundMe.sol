@@ -1,35 +1,42 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.16;
-import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+pragma solidity ^0.8.8;
+import "./PriceConvert.sol";
 
 contract FundMe {
+    using PriceConvert for uint256;
     // AggregatorV3Interface internal priceFeed;
     uint public minmumUSD  = 50 * 1e18;
+
+    address public owner;
+
+   constructor() {
+       owner = msg.sender;
+   }
 
     address[] public funder;
     mapping(address => uint) funderMap;
 
     function fund() public payable {
-         
-        require(getConversion(msg.value) > 1e18, "Value should be more then 1 Ether");
-        funderMap[msg.sender]= msg.value;
+        require(msg.value.getConversion() => 1e18, "Value should be more then 1 Ether");
+        funder.push(msg.sender);
+        funderMap[msg.sender] += msg.value ;
     }
 
-    function getPrice() public view returns(uint256){
-        AggregatorV3Interface priceFeed = AggregatorV3Interface(0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e);
-        (,int256 price,,, ) = priceFeed.latestRoundData();
-        return uint256(price* 1e10);
+    function withdraw() public onlyOwner {
+        for(uint i = 0; i < funder.length; i++){
+            funderMap[funder[i]] = 0;
+        }
+        funder = new address[](0);
+        payable(msg.sender).transfer(address(this).balance);
+        bool result = payable(msg.sender).send(address(this).balance);
+        require(result, "send fail");
+        (bool resultCal,) = payable(msg.sender).call{value: address(this).balance}("");
+        require(resultCal, "send fail");
     }
 
-    function getVersion() public view returns(uint256){
-        AggregatorV3Interface priceFeed = AggregatorV3Interface(0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e);
-        return priceFeed.version();
+    modifier onlyOwner {
+        require(owner == msg.sender, "only owner can withdraw");
+        _;
     }
-
-    function getConversion(uint256 ethAmout) public view returns(uint256){
-        return (ethAmout * getPrice())/1e18;
-    }
-
-    // function withdraw(){}
 
 }
